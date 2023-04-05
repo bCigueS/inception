@@ -1,6 +1,5 @@
 #!bin/sh
 
-echo coucou
 if [ ! -d "/var/lib/mysql/mysql" ]; then
 
         chown -R mysql:mysql /var/lib/mysql
@@ -15,7 +14,6 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 fi
 
 if [ ! -d "/var/lib/mysql/wordpress" ]; then
-		echo wordpress
 
         cat << EOF > /tmp/create_db.sql
 USE mysql;
