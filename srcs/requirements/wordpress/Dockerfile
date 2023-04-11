@@ -6,7 +6,7 @@
 #    By: sbeylot <sbeylot@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/04/04 17:32:03 by sbeylot           #+#    #+#              #
-#    Updated: 2023/04/04 18:55:40 by sbeylot          ###   ########.fr        #
+#    Updated: 2023/04/11 09:43:59 by sbeylot          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,29 +15,40 @@ FROM alpine:3.16
 ARG PHP_VERSION=8 \
 	DB_NAME \
 	DB_USER \
-	DB_PASS 
+	DB_PASS
 
-RUN apk update && apk upgrade && apk add --no-cache \
-	php${PHP_VERSION} \
+
+RUN apk update && apk upgrade && \
+	apk add php${PHP_VERSION} \
 	php${PHP_VERSION}-fpm \
 	php${PHP_VERSION}-mysqli \
-	wget
+	php${PHP_VERSION}-json \
+	php${PHP_VERSION}-curl \
+	php${PHP_VERSION}-dom \
+	php${PHP_VERSION}-exif \
+	php${PHP_VERSION}-fileinfo \
+	php${PHP_VERSION}-mbstring \
+	php${PHP_VERSION}-openssl \
+	php${PHP_VERSION}-xml \
+	php${PHP_VERSION}-zip \
+	wget \
+	unzip 
 
-RUN wget https://wordpress.org/wordpress-6.0.tar.gz -P /var/www
-RUN cd /var/www && tar -xzf wordpress-6.0.tar.gz && rm wordpress-6.0.tar.gz
-RUN chown -R root:root /var/www/wordpress
+RUN sed -i "s|listen = 127.0.0.1:9000|listen = 9000|g" /etc/php8/php-fpm.d/www.conf \
+	sed -i "s|;listen.owner = nobody|listen.owner = nobody|g" /etc/php8/php-fpm.d/www.conf \
+	sed -i "s|;listen.group = nobody|listen.group = nobody|g" /etc/php8/php-fpm.d/www.conf \
+	rm -f /var/cache/apk/*
 
-COPY requirements/wordpress/conf/php.conf /etc/php8/php-fpm.d/www.conf
+WORKDIR /var/www 
+RUN wget https://wordpress.org/latest.zip && \
+	unzip latest.zip && \
+	cp -rf wordpress/* . && \
+	rm -rf wordpress latest.zip 
 
-RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+COPY ./requirements/wordpress/conf/wp-config-create.sh .
+RUN sh wp-config-create.sh && rm wp-config-create.sh && \
+	chmod -R 0777 wp-content 
 
-RUN chmod +x wp-cli.phar
-RUN mv wp-cli.phar /usr/local/bin/wp
-
-COPY requirements/wordpress/tools/auto_config.sh auto_config.sh 
-RUN sh auto_config.sh
-
-ENTRYPOINT [ "/usr/sbin/php-fpm8", "-F" ]
-
-
+CMD ["/usr/sbin/php-fpm8", "-F"]
+	
 
