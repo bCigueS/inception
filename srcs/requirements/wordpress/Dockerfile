@@ -6,7 +6,7 @@
 #    By: sbeylot <sbeylot@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/04/04 17:32:03 by sbeylot           #+#    #+#              #
-#    Updated: 2023/04/11 09:43:59 by sbeylot          ###   ########.fr        #
+#    Updated: 2023/04/12 12:52:07 by sbeylot          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -19,6 +19,7 @@ ARG PHP_VERSION=8 \
 
 
 RUN apk update && apk upgrade && \
+	apk add --no-cache mysql-client && \
 	apk add php${PHP_VERSION} \
 	php${PHP_VERSION}-fpm \
 	php${PHP_VERSION}-mysqli \
@@ -31,24 +32,35 @@ RUN apk update && apk upgrade && \
 	php${PHP_VERSION}-openssl \
 	php${PHP_VERSION}-xml \
 	php${PHP_VERSION}-zip \
+	php${PHP_VERSION}-phar \
 	wget \
 	unzip 
 
-RUN sed -i "s|listen = 127.0.0.1:9000|listen = 9000|g" /etc/php8/php-fpm.d/www.conf \
-	sed -i "s|;listen.owner = nobody|listen.owner = nobody|g" /etc/php8/php-fpm.d/www.conf \
-	sed -i "s|;listen.group = nobody|listen.group = nobody|g" /etc/php8/php-fpm.d/www.conf \
+RUN sed -i "s|listen = 127.0.0.1:9000|listen = 9000|g" /etc/php8/php-fpm.d/www.conf && \
+	sed -i "s|;listen.owner = nobody|listen.owner = nobody|g" /etc/php8/php-fpm.d/www.conf &&  \
+	sed -i "s|;listen.group = nobody|listen.group = nobody|g" /etc/php8/php-fpm.d/www.conf && \
 	rm -f /var/cache/apk/*
 
+RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
+	chmod +x wp-cli.phar && \
+	mv wp-cli.phar /usr/local/bin/wp
+	
 WORKDIR /var/www 
 RUN wget https://wordpress.org/latest.zip && \
 	unzip latest.zip && \
 	cp -rf wordpress/* . && \
 	rm -rf wordpress latest.zip 
-
 COPY ./requirements/wordpress/conf/wp-config-create.sh .
 RUN sh wp-config-create.sh && rm wp-config-create.sh && \
 	chmod -R 0777 wp-content 
 
-CMD ["/usr/sbin/php-fpm8", "-F"]
+WORKDIR /
+COPY ./requirements/wordpress/conf/create-users.sh .
+
+
+# RUN sh create-users.sh && rm create-users.sh
+
+
+CMD ["sh", "create-users.sh"]
 	
 
