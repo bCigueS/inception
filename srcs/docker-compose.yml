@@ -17,17 +17,14 @@ services:
       - ./requirements/nginx/tools:/etc/nginx/ssl/
       - wp-volume:/var/www
     restart: always
+    env_file:
+      - .env
+
 
   mariadb:
     build: 
       context: .
       dockerfile: requirements/mariadb/Dockerfile
-      args:
-        DB_NAME: ${DB_NAME}
-        DB_USER: ${DB_USER}
-        DB_PASS: ${DB_PASS}
-        DB_ROOT: ${DB_ROOT}
-
     container_name: mariadb
     ports:
       - "3306:3306"
@@ -36,18 +33,13 @@ services:
     volumes:
       - db-volume:/var/lib/mysql
     restart: always
+    env_file:
+      - .env
   
   wordpress:
     build: 
       context: .
       dockerfile: requirements/wordpress/Dockerfile
-      args:
-        DOMAIN_NAME: ${DOMAIN_NAME}
-        DB_NAME: ${DB_NAME}
-        DB_USER: ${DB_USER}
-        DB_PASS: ${DB_PASS}
-        DB_ROOT: ${DB_ROOT}
-
     container_name: wordpress
     depends_on:
       - mariadb
