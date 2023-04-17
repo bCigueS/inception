@@ -6,61 +6,39 @@
 #    By: sbeylot <sbeylot@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/04/04 17:32:03 by sbeylot           #+#    #+#              #
-#    Updated: 2023/04/12 12:52:07 by sbeylot          ###   ########.fr        #
+#    Updated: 2023/04/17 13:02:41 by sbeylot          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-FROM alpine:3.16
+FROM debian:buster
 
-ARG PHP_VERSION=8 \
-	DB_NAME \
-	DB_USER \
-	DB_PASS
+ARG PHP_VERSION=7.3
 
+RUN apt update && apt upgrade -y && \
+	apt install -y php${PHP_VERSION} \
+	php-fpm \
+	php-mysql \
+	mariadb-client \
+	wget
 
-RUN apk update && apk upgrade && \
-	apk add --no-cache mysql-client && \
-	apk add php${PHP_VERSION} \
-	php${PHP_VERSION}-fpm \
-	php${PHP_VERSION}-mysqli \
-	php${PHP_VERSION}-json \
-	php${PHP_VERSION}-curl \
-	php${PHP_VERSION}-dom \
-	php${PHP_VERSION}-exif \
-	php${PHP_VERSION}-fileinfo \
-	php${PHP_VERSION}-mbstring \
-	php${PHP_VERSION}-openssl \
-	php${PHP_VERSION}-xml \
-	php${PHP_VERSION}-zip \
-	php${PHP_VERSION}-phar \
-	wget \
-	unzip 
+RUN wget https://fr.wordpress.org/wordpress-6.0-fr_FR.tar.gz -P /var/www && \
+	cd /var/www && \
+	tar -xzf wordpress-6.0-fr_FR.tar.gz && \
+	rm wordpress-6.0-fr_FR.tar.gz && \
+	chown -R root:root /var/www/wordpress
 
-RUN sed -i "s|listen = 127.0.0.1:9000|listen = 9000|g" /etc/php8/php-fpm.d/www.conf && \
-	sed -i "s|;listen.owner = nobody|listen.owner = nobody|g" /etc/php8/php-fpm.d/www.conf &&  \
-	sed -i "s|;listen.group = nobody|listen.group = nobody|g" /etc/php8/php-fpm.d/www.conf && \
-	rm -f /var/cache/apk/*
+COPY ./conf/php.conf /etc/php/${PHP_VERSION}/fpm/pool.d/www.conf 
+RUN mkdir /run/php
+
 
 RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
 	chmod +x wp-cli.phar && \
 	mv wp-cli.phar /usr/local/bin/wp
-	
-WORKDIR /var/www 
-RUN wget https://wordpress.org/latest.zip && \
-	unzip latest.zip && \
-	cp -rf wordpress/* . && \
-	rm -rf wordpress latest.zip 
-COPY ./requirements/wordpress/conf/wp-config-create.sh .
-RUN sh wp-config-create.sh && rm wp-config-create.sh && \
-	chmod -R 0777 wp-content 
 
-WORKDIR /
-COPY ./requirements/wordpress/conf/create-users.sh .
+COPY conf/auto_config.sh auto_config.sh
+RUN chmod +x ./auto_config.sh
 
+EXPOSE 9000
 
-# RUN sh create-users.sh && rm create-users.sh
-
-
-CMD ["sh", "create-users.sh"]
-	
+ENTRYPOINT [ "bash", "auto_config.sh" ]
 

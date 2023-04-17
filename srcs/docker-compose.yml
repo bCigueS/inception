@@ -3,8 +3,8 @@ version:  '3'
 services:
   nginx:
     build:
-      context: .
-      dockerfile: requirements/nginx/Dockerfile
+      context: requirements/nginx
+      dockerfile: Dockerfile
     container_name: nginx
     depends_on:
       - wordpress
@@ -13,33 +13,29 @@ services:
     networks:
       - inception
     volumes:
-      - ./requirements/nginx/conf/:/etc/nginx/http.d/
-      - ./requirements/nginx/tools:/etc/nginx/ssl/
-      - wp-volume:/var/www
-    restart: always
-    env_file:
-      - .env
+      - wp-volume:/var/www/wordpress
+    restart: on-failure
+    env_file: .env
 
 
   mariadb:
     build: 
-      context: .
-      dockerfile: requirements/mariadb/Dockerfile
+      context: requirements/mariadb
+      dockerfile: Dockerfile
     container_name: mariadb
-    ports:
-      - "3306:3306"
+    expose:
+      - "3306"
     networks:
       - inception
     volumes:
       - db-volume:/var/lib/mysql
-    restart: always
-    env_file:
-      - .env
+    restart: on-failure
+    env_file: .env
   
   wordpress:
     build: 
-      context: .
-      dockerfile: requirements/wordpress/Dockerfile
+      context: requirements/wordpress
+      dockerfile: Dockerfile
     container_name: wordpress
     depends_on:
       - mariadb
@@ -47,18 +43,21 @@ services:
     networks:
       - inception
     volumes:
-      - wp-volume:/var/www
-    env_file:
-      - .env
+      - wp-volume:/var/www/wordpress
+    expose:
+      - "9000"
+    env_file: .env
 
 volumes:
   wp-volume:
+    driver: local
     driver_opts:
       o: bind
       type: none
       device: /home/sbeylot/data/wordpress
 
   db-volume:
+    driver: local
     driver_opts:
       o: bind
       type: none
